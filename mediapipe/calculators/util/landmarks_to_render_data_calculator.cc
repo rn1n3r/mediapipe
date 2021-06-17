@@ -220,6 +220,54 @@ RenderAnnotation* AddPointRenderData(const Color& landmark_color,
   return landmark_data_annotation;
 }
 
+RenderAnnotation* AddLabelRenderData(float thickness, std::string display_text, int baseline, RenderData* render_data) {
+
+  auto* label_annotation = render_data->add_render_annotations();
+
+
+  label_annotation->set_thickness(thickness);
+
+  label_annotation->mutable_color()->set_r(0);
+  label_annotation->mutable_color()->set_g(255);
+  label_annotation->mutable_color()->set_b(0);
+
+
+  auto* text = label_annotation->mutable_text();
+
+
+  text->set_display_text(display_text);
+  text->set_font_height(50);
+  text->set_left(30);
+  text->set_baseline(baseline);
+
+  return label_annotation;
+}
+
+float calculate_angle(const NormalizedLandmarkList& landmarks, int index1, int index2, int index3) {
+    float x1 = landmarks.landmark(index1).x() * 720.0;
+    float y1 = landmarks.landmark(index1).y() * 1280.0;
+
+    float x2 = landmarks.landmark(index2).x() * 720.0;
+    float y2 = landmarks.landmark(index2).y() * 1280.0;
+
+    float x0 = landmarks.landmark(index3).x() * 720.0;
+    float y0 = landmarks.landmark(index3).y() * 1280.0;
+
+    float x21 = x1 - x2;
+    float x10 = x1 - x0;
+    float y21 = y1 - y2;
+    float y10 = y1 - y0;
+
+    float dot = x21*x10 + y21*y10;
+    float det = x21*y10 - y21*x10;
+    float angle = std::atan2(det, dot) * 180.0/3.14159;
+
+    return angle;
+
+
+
+}
+
 }  // namespace
 
 absl::Status LandmarksToRenderDataCalculator::GetContract(
@@ -382,7 +430,20 @@ absl::Status LandmarksToRenderDataCalculator::Process(CalculatorContext* cc) {
       landmark_data->set_x(landmark.x());
       landmark_data->set_y(landmark.y());
     }
+
+
+
+
+    float index_angle = calculate_angle(landmarks, 5, 6, 0);
+    float pinky_angle = calculate_angle(landmarks, 17, 18, 0);
+    std::string display_text = "INDEX: " + std::to_string(index_angle);
+    std::string display_text2 = "PINKY: " + std::to_string(pinky_angle);
+
+    auto* label_data_render = AddLabelRenderData(10.0, display_text, 240, render_data.get());
+    auto* label_data_render2 = AddLabelRenderData(10.0, display_text2, 360, render_data.get());
+
   }
+
 
   cc->Outputs()
       .Tag(kRenderDataTag)
